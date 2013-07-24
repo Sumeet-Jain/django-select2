@@ -10,6 +10,7 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
 from django.utils.datastructures import MultiValueDict, MergeDict
+from django.core.exceptions import ObjectDoesNotExist
 
 from .util import render_js_script, convert_to_js_string_arr, JSVar, JSFunction, JSFunctionInContext, \
     convert_dict_to_js_map, convert_to_js_arr
@@ -401,14 +402,19 @@ class HeavySelect2Mixin(Select2Mixin):
         txts = []
         all_choices = choices if choices else []
         choices_dict = dict()
-        for val, txt in chain(self.choices, all_choices):
-            val = force_unicode(val)
-            choices_dict[val] = txt
-        for val in selected_choices:
-            try:
-                txts.append(choices_dict[val])
-            except KeyError:
-                logger.error("Value '%s' is not a valid choice.", val)
+        try:
+            for choice in selected_choices:
+                model = self.choices.field.queryset.model
+                txts.append(model.objects.get(pk=int(choice)))
+        except (ValueError, AttributeError, ObjectDoesNotExist):
+            for val, txt in chain(self.choices, all_choices):
+                val = force_unicode(val)
+                choices_dict[val] = txt
+            for val in selected_choices:
+                try:
+                    txts.append(choices_dict[val])
+                except KeyError:
+                    logger.error("Value '%s' is not a valid choice.", val)
 
         if hasattr(self.field, '_get_val_txt') and selected_choices:
             for val in selected_choices:
