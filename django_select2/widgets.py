@@ -404,8 +404,9 @@ class HeavySelect2Mixin(Select2Mixin):
         choices_dict = dict()
         try:
             for choice in selected_choices:
-                model = self.choices.field.queryset.model
-                txts.append(model.objects.get(pk=int(choice)))
+                if choice:
+                    model = self.choices.field.queryset.model
+                    txts.append(model.objects.get(pk=int(choice)))
         except (ValueError, AttributeError, ObjectDoesNotExist):
             for val, txt in chain(self.choices, all_choices):
                 val = force_unicode(val)
